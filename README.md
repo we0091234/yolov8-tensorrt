@@ -37,7 +37,7 @@ pytorch model is from here  [https://github.com/ultralytics/assets/releases/tag/
 4. inference
 
    ```
-   ./yolov8 ../yolov8n.trt  ../imgs2/
+   ./yolov8 ./yolov8n.trt  ../imgs2/
    ```
 
    The results are saved in the build folder.
