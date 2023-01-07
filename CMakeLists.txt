@@ -6,7 +6,7 @@ add_definitions(-w)
 # option(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 find_package(CUDA REQUIRED)
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
 
 #cuda 
 include_directories(/mnt/Gu/softWare/cuda-11.0/targets/x86_64-linux/include)
@@ -24,11 +24,11 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 #onnx2trt
 add_subdirectory(${PROJECT_SOURCE_DIR}/onnx2trt)
 
-cuda_add_executable(yolov8 yolov8.cpp utils.cpp preprocess.cu)
+cuda_add_executable(yolov8 yolov8.cpp utils.cpp process.cu)
 
 target_link_libraries(yolov8 nvinfer)
 target_link_libraries(yolov8 cudart)
 target_link_libraries(yolov8 nvonnxparser)
 target_link_libraries(yolov8 ${OpenCV_LIBS})
 
-add_definitions(-O0 -pthread)
+add_definitions(-O2 -pthread)
