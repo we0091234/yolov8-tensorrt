@@ -1,5 +1,7 @@
 # yolov8 TensorRT
 
+The Pytorch implementation is [https://github.com/ultralytics/ultralytics](https://github.com/ultralytics/ultralytics).
+
 ## onnx model
 
 step1. install yolov8
