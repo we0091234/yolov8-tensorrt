@@ -2,9 +2,21 @@
 
 ## onnx model
 
-pytorch model is from here  [https://github.com/ultralytics/assets/releases/tag/v0.0.0](https://github.com/ultralytics/assets/releases/tag/v0.0.0)
+step1. install yolov8
 
-[yolov8 _onnx_model](https://pan.baidu.com/s/13JqhFB1uWhqzz_zSHAeO7Q)   提取码：1tpm
+```
+ pip install ultralytics
+```
+
+step2. download yolov8 model from [https://github.com/ultralytics/assets/releases](https://github.com/ultralytics/assets/releases)
+
+step3. convert yolov8 model  to onnx
+
+```
+yolo mode=export model=yolov8n.pt format=onnx simplify=True
+```
+
+or you can download  onnx model from here [z16b](https://pan.baidu.com/s/1KzJ3-15LrPnWjavnqeWsTg)
 
 ## How to Run, yolov8n as example
 

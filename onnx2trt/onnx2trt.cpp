@@ -15,7 +15,7 @@
 using namespace nvinfer1;
 using namespace std;
 static Logger gLogger;
-#define USE_FP16
+// #define USE_FP16
 
 const char* INPUT_BLOB_NAME = "input";
 const char* OUTPUT_BLOB_NAME = "output";

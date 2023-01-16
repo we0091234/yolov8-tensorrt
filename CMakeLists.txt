@@ -12,9 +12,13 @@ set(CMAKE_BUILD_TYPE Release)
 include_directories(/mnt/Gu/softWare/cuda-11.0/targets/x86_64-linux/include)
 link_directories(/mnt/Gu/softWare/cuda-11.0/targets/x86_64-linux/lib)
 
-#tensorrt 
+# tensorrt 
 include_directories(/mnt/Gpan/tensorRT/TensorRT-8.2.0.6//include/)
 link_directories(/mnt/Gpan/tensorRT/TensorRT-8.2.0.6/lib/)
+
+
+# include_directories(/mnt/Gu/softWare/TensorRT-8.4.1.5/include/)
+# link_directories(/mnt/Gu/softWare/TensorRT-8.4.1.5/lib/)
 
 #opencv 
 find_package(OpenCV)

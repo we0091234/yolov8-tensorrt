@@ -71,6 +71,8 @@ void nms_kernel_invoker(
         float* parray, float nms_threshold, int max_objects, cudaStream_t stream
     );                            //nums cuda
 
+void transpose_kernel_invoker(float *src,int num_bboxes,int num_elements,float *dst,cudaStream_t stream);
+
 void affine_project(float *d2i,float x,float y ,float *ox,float *oy)  //通过仿射变换逆矩阵返回原图上的坐标
 {
   *ox = x*d2i[0]+y*d2i[1]+d2i[2];
@@ -135,7 +137,9 @@ int main(int argc, char** argv)
 
     float *decode_ptr_host=nullptr;
     float *decode_ptr_device=nullptr;
+    float * transpose_device=nullptr;
 
+    
     CHECK(cudaMallocHost(&affine_matrix_d2i_host,sizeof(float)*6));  //仿射变换逆矩阵数组长度是6
     CHECK(cudaMalloc(&affine_matrix_d2i_device,sizeof(float)*6)) ; 
 
@@ -148,7 +152,7 @@ int main(int argc, char** argv)
 
     auto out_dims = engine_det->getBindingDimensions(1);
     auto output_size = 1;
-    int OUTPUT_CANDIDATES = out_dims.d[1];
+    int OUTPUT_CANDIDATES = out_dims.d[2];  //8400
 
        for(int j=0;j<out_dims.nbDims;j++) {
         output_size *= out_dims.d[j];
@@ -157,6 +161,9 @@ int main(int argc, char** argv)
 
     CHECK(cudaMalloc((void**)&buffers[inputIndex],  3 * INPUT_H * INPUT_W * sizeof(float)));
     CHECK(cudaMalloc((void**)&buffers[outputIndex], output_size * sizeof(float)));
+
+    CHECK(cudaMalloc(&transpose_device,output_size * sizeof(float)));
+
 
 
      // Create stream
@@ -200,14 +207,16 @@ int main(int argc, char** argv)
         memcpy(img_host, img.data, size_image);
 
         CHECK(cudaMemcpyAsync(img_device, img_host, size_image, cudaMemcpyHostToDevice, stream));
-        preprocess_kernel_img(img_device, img.cols, img.rows, buffer_idx, INPUT_W, INPUT_H,affine_matrix_d2i_device, stream);
+        preprocess_kernel_img(img_device, img.cols, img.rows, buffer_idx, INPUT_W, INPUT_H,affine_matrix_d2i_device, stream);  // cuda前处理 letter_box
         double time_pre = cv::getTickCount();
         double time_pre_=(time_pre-begin_time)/cv::getTickFrequency()*1000;
         (*context_det).enqueueV2((void**)buffers, stream, nullptr);
         float *predict = buffers[outputIndex];
+        transpose_kernel_invoker(buffers[outputIndex],OUTPUT_CANDIDATES,NUM_CLASSES+4,transpose_device,stream);  //transpose [1 84 8400] convert to [1 8400 84]
+        predict = transpose_device;
         CHECK(cudaMemsetAsync(decode_ptr_device,0,sizeof(int),stream));
-        decode_kernel_invoker(predict,OUTPUT_CANDIDATES,NUM_CLASSES,BBOX_CONF_THRESH,affine_matrix_d2i_device,decode_ptr_device,MAX_OBJECTS,stream);
-        nms_kernel_invoker(decode_ptr_device, NMS_THRESH, MAX_OBJECTS, stream);//cuda nms
+        decode_kernel_invoker(predict,OUTPUT_CANDIDATES,NUM_CLASSES,BBOX_CONF_THRESH,affine_matrix_d2i_device,decode_ptr_device,MAX_OBJECTS,stream); //后处理 cuda
+        nms_kernel_invoker(decode_ptr_device, NMS_THRESH, MAX_OBJECTS, stream);//cuda nms           
         CHECK(cudaMemcpyAsync(decode_ptr_host,decode_ptr_device,sizeof(float)*(1+MAX_OBJECTS*NUM_BOX_ELEMENT),cudaMemcpyDeviceToHost,stream));
         cudaStreamSynchronize(stream);
       
@@ -241,7 +250,8 @@ int main(int argc, char** argv)
         {
             cv::Rect roi_area(boxes[i].x1,boxes[i].y1,boxes[i].x2-boxes[i].x1,boxes[i].y2-boxes[i].y1);
             cv::rectangle(img, roi_area, cv::Scalar(0,255,0), 2);
-              cv::putText(img, std::to_string((int)boxes[i].label), cv::Point(boxes[i].x1, boxes[i].y1 - 1), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+            std::string  label_string = std::to_string((int)boxes[i].label)+" "+std::to_string(boxes[i].score);
+            cv::putText(img, label_string, cv::Point(boxes[i].x1, boxes[i].y1 - 1), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
         }
 
           double end_time = cv::getTickCount();
@@ -275,6 +285,7 @@ int main(int argc, char** argv)
     CHECK(cudaFree(decode_ptr_device));
     CHECK(cudaFree(affine_matrix_d2i_device));
     CHECK(cudaFreeHost(affine_matrix_d2i_host));
+    CHECK(cudaFree(transpose_device));
 
     delete [] decode_ptr_host;
     return 0;

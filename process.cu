@@ -206,6 +206,25 @@ void preprocess_kernel_img(
 
 }
 
+static __global__ void transpose_kernel(float *src,int num_bboxes, int num_elements,float *dst,int edge)
+{
+    int position = blockDim.x * blockIdx.x + threadIdx.x;
+    //  int position = blockDim.x * blockIdx.x + threadIdx.x;
+    if (position>=edge)
+    return;
+
+    // int new_position = position*num_elements;
+    // for(int i = 0; i<num_elements;i++)
+    // {
+    //     int new_i = new_position+i;
+    //     int transpose_i = new_i/num_elements+(new_i%num_elements)*num_bboxes;
+    //     dst[new_i] = src[transpose_i];
+    // }
+    dst[position]=src[position/num_elements+(position%num_elements)*num_bboxes];
+    // printf("position=%d,newpositon=%d\n",positon,positon/num_elements+(positon%num_elements)*num_bboxes);
+
+}
+
    void decode_kernel_invoker(float* predict, int num_bboxes, int num_classes, float confidence_threshold, float* invert_affine_matrix, float* parray, int max_objects, cudaStream_t stream)
     {
         int block = 256;
@@ -220,4 +239,12 @@ void preprocess_kernel_img(
         int block = max_objects<256? max_objects:256;
         int grid = ceil(max_objects / (float)block);
         nms_kernel<<<grid, block, 0, stream>>>(parray, max_objects, nms_threshold);
+    }
+
+    void transpose_kernel_invoker(float *src,int num_bboxes,int num_elements,float *dst,cudaStream_t stream)
+    {
+        int edge = num_bboxes*num_elements;
+        int block =256;
+        int gird = ceil(edge/(float)block);
+        transpose_kernel<<<gird,block,0,stream>>>(src,num_bboxes,num_elements,dst,edge);
     }
